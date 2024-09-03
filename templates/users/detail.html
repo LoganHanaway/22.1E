@@ -1,20 +1,32 @@
-{% extends "base.html" %} {% block title %}{{ user.get_full_name() }}{% endblock
-%} {% block content %}
-<h2>{{ user.get_full_name() }}</h2>
-<img src="{{ user.image_url }}" alt="Profile Picture" class="img-thumbnail" />
-<p>
-  <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-primary"
-    >Edit</a
-  >
-</p>
-<form
-  action="{{ url_for('delete_user', user_id=user.id) }}"
-  method="POST"
-  style="display: inline"
->
-  <button type="submit" class="btn btn-danger">Delete</button>
-</form>
-<a href="{{ url_for('list_users') }}" class="btn btn-secondary"
-  >Back to All Users</a
->
+{% extends "base.html" %}
+
+{% block title %}{{ user.get_full_name() }}{% endblock %}
+
+{% block content %}
+  <h2>{{ user.get_full_name() }}</h2>
+  <img src="{{ user.image_url }}" alt="{{ user.get_full_name() }}" class="img-thumbnail">
+  <p>
+    <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-primary">Edit</a>
+    <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" style="display:inline;">
+      <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+  </p>
+  
+  <h3>Posts:</h3>
+  {% if posts %}
+    <ul class="list-group">
+      {% for post in posts %}
+        <li class="list-group-item">
+          <a href="{{ url_for('show_post', post_id=post.id) }}">{{ post.title }}</a>
+          <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-danger btn-sm float-end">Delete</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No posts yet.</p>
+  {% endif %}
+
+  <a href="{{ url_for('new_post', user_id=user.id) }}" class="btn btn-secondary">Add New Post</a>
 {% endblock %}
