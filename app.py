@@ -1,7 +1,8 @@
 """Blogly application."""
 
 from flask import Flask, render_template, redirect, url_for, request, flash, redirect
-from models import db, connect_db, User, Post
+from models import db, connect_db, User, Post, Tag
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///blogly'
@@ -10,11 +11,13 @@ app.config['SQLALCHEMY_ECHO'] = True
 
 connect_db(app)
 db.create_all()
+app.app_context().push()
 
-# @app.route('/')
-# def home_redirect():
-#     """Redirect to the list of users."""
-#     return redirect(url_for('list_users'))
+migrate = Migrate(app, db)
+
+@app.route('/home')
+def home_redirect():
+    return redirect(url_for('show_recent_posts'))
 
 @app.route('/users')
 def list_users():
@@ -74,23 +77,31 @@ def delete_user(user_id):
 def new_post(user_id):
     """Show form to add a post for that user or handle post submission."""
     user = User.query.get_or_404(user_id)
+    tags = Tag.query.all()
 
     if request.method == "POST":
         title = request.form['title']
         content = request.form['content']
+        tag_ids = request.form.getlist('tags')
 
         if not title or not content:
             flash('Title and content are required!', 'error')
-            return redirect(url_for('show_new_post_form', user_id=user_id))
+            return redirect(url_for('new_post', user_id=user_id))
 
         new_post = Post(title=title, content=content, user_id=user.id)
+        for tag_id in tag_ids:
+            tag = Tag.query.get(tag_id)
+            if tag:
+                new_post.tags.append(tag)
+
         db.session.add(new_post)
         db.session.commit()
 
         flash('Post created successfully!', 'success')
         return redirect(url_for('show_user', user_id=user.id))
-    
-    return render_template('posts/new.html', user=user)
+
+    return render_template('posts/new.html', user=user, tags=tags)
+
 
 @app.route('/posts/<int:post_id>')
 def show_post(post_id):
@@ -136,3 +147,26 @@ def show_recent_posts():
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
+
+@app.route('/tags')
+def list_tags():
+    """Show a list of all tags."""
+    tags = Tag.query.all()
+    return render_template('tags/list.html', tags=tags)
+
+@app.route('/tags/new', methods=["GET", "POST"])
+def add_tag():
+    """Add a new tag."""
+    if request.method == "POST":
+        name = request.form['name']
+        if Tag.query.filter_by(name=name).first():
+            flash('Tag name must be unique', 'error')
+            return redirect(url_for('add_tag'))
+        
+        new_tag = Tag(name=name)
+        db.session.add(new_tag)
+        db.session.commit()
+        flash('Tag created!', 'success')
+        return redirect(url_for('list_tags'))
+
+    return render_template('tags/new.html')
