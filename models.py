@@ -19,7 +19,7 @@ class User(db.Model):
         """Return full name of the user."""
         return f"{self.first_name} {self.last_name}"
 
-    posts = db.relationship('Post', backref='user', cascade="all, delete-orphan")
+    posts = db.relationship('Post', back_populates='user', cascade="all, delete-orphan", lazy=True)
 
 def connect_db(app):
     """Connect the database to the Flask app."""
@@ -38,6 +38,7 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     tags = db.relationship('Tag', secondary='post_tags', back_populates='posts')
+    user = db.relationship('User', back_populates='posts')
 
     def __repr__(self):
         return f"<Post {self.title} by {self.user_id}>"

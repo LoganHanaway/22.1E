@@ -8,6 +8,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///blogly'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
+app.config['SECRET_KEY'] = '123456789'
 
 connect_db(app)
 db.create_all()
@@ -83,12 +84,22 @@ def new_post(user_id):
         title = request.form['title']
         content = request.form['content']
         tag_ids = request.form.getlist('tags')
+        new_tag_name = request.form.get('new_tag', '').strip()
 
         if not title or not content:
             flash('Title and content are required!', 'error')
             return redirect(url_for('new_post', user_id=user_id))
 
         new_post = Post(title=title, content=content, user_id=user.id)
+
+        if new_tag_name:
+            existing_tag = Tag.query.filter_by(name=new_tag_name).first()
+            if not existing_tag:
+                new_tag = Tag(name=new_tag_name)
+                db.session.add(new_tag)
+                db.session.commit()
+                tag_ids.append(new_tag.id) 
+
         for tag_id in tag_ids:
             tag = Tag.query.get(tag_id)
             if tag:
@@ -107,26 +118,49 @@ def new_post(user_id):
 def show_post(post_id):
     """Show a post and its details."""
     post = Post.query.get_or_404(post_id)
-    return render_template('posts/detail.html', post=post)
+    tags = post.tags
+    user = post.user
+    return render_template('posts/detail.html', post=post, user=user, tags=tags)
 
 @app.route('/posts/<int:post_id>/edit', methods=["GET", "POST"])
 def edit_post(post_id):
     """Show form to edit a post or handle editing of the post."""
     post = Post.query.get_or_404(post_id)
+    tags = Tag.query.all()
 
     if request.method == "POST":
         post.title = request.form['title']
         post.content = request.form['content']
 
+        new_tag_name = request.form.get('new_tag')
+        if new_tag_name:
+
+            existing_tag = Tag.query.filter_by(name=new_tag_name).first()
+            if not existing_tag:
+                new_tag = Tag(name=new_tag_name)
+                db.session.add(new_tag)
+                db.session.commit()
+                tags.append(new_tag)
+
+        selected_tag_ids = request.form.getlist('tags')
+        post.tags = []
+
+        for tag_id in selected_tag_ids:
+            tag = Tag.query.get(tag_id)
+            if tag:
+                post.tags.append(tag)
+
         if not post.title or not post.content:
             flash('Title and content are required!', 'error')
-            return redirect(url_for('show_edit_post_form', post_id=post_id))
+            return redirect(url_for('edit_post', post_id=post_id))
         
         db.session.commit()
-
+        flash('Post updated successfully!', 'success')
         return redirect(url_for('show_post', post_id=post.id))
     
-    return render_template('posts/edit.html', post=post)
+    return render_template('posts/edit.html', post=post, tags=tags)
+
+
 
 @app.route('/posts/<int:post_id>/delete', methods=["POST"])
 def delete_post(post_id):
@@ -142,6 +176,8 @@ def delete_post(post_id):
 def show_recent_posts():
     """Show the 5 most recent posts."""
     posts = Post.query.order_by(Post.created_at.desc()).limit(5).all()
+    for post in posts:
+        db.session.refresh(post)
     return render_template('home.html', posts=posts)
 
 @app.errorhandler(404)
@@ -153,6 +189,14 @@ def list_tags():
     """Show a list of all tags."""
     tags = Tag.query.all()
     return render_template('tags/list.html', tags=tags)
+
+@app.route('/tags/<int:tag_id>')
+def posts_by_tag(tag_id):
+    """Show posts associated with a specific tag."""
+    tag = Tag.query.get_or_404(tag_id)
+    posts = tag.posts
+    return render_template('tags/posts_by_tag.html', tag=tag, posts=posts)
+
 
 @app.route('/tags/new', methods=["GET", "POST"])
 def add_tag():

@@ -1,0 +1,14 @@
+<!-- templates/tags/list.html -->
+{% extends "base.html" %} {% block title %}All Tags{% endblock %} {% block
+content %}
+<div class="container mt-5">
+  <h1>All Tags</h1>
+  <ul class="list-group">
+    {% for tag in tags %}
+    <li class="list-group-item">
+      <a href="{{ url_for('posts_by_tag', tag_id=tag.id) }}">{{ tag.name }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

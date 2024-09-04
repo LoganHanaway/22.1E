@@ -1,18 +1,20 @@
-{% extends "base.html" %} {% block title %}{{ user.get_full_name() }}{% endblock
-%} {% block content %}
+{% extends "base.html" %} {% block title %} {{ user.get_full_name() }} {%
+endblock %} {% block content %}
 <div class="container mt-5">
-  <h1>{{ user.full_name }}</h1>
+  <h1>{{ user.get_full_name() }}</h1>
   <img
     src="{{ user.image_url }}"
-    alt="{{ user.full_name }}"
+    alt="{{ user.get_full_name() }}"
     class="img-thumbnail"
     style="width: 150px"
   />
   <p><strong>First Name:</strong> {{ user.first_name }}</p>
   <p><strong>Last Name:</strong> {{ user.last_name }}</p>
 
-  <h3>Posts by {{ user.full_name }}</h3>
-  <a href="{{ url_for('new_post') }}" class="btn btn-custom">Add New Post</a>
+  <h3>Posts by {{ user.get_full_name() }}</h3>
+  <a href="{{ url_for('new_post', user_id=user.id) }}" class="btn btn-primary"
+    >Add New Post</a
+  >
   <ul>
     {% for post in user.posts %}
     <li>
@@ -21,14 +23,17 @@
     {% endfor %}
   </ul>
 
-  <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-primary"
-    >Edit User</a
+  <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-primary">
+    Edit User
+  </a>
+  <a
+    href="{{ url_for('delete_user', user_id=user.id) }}"
+    class="btn btn-danger"
   >
-  <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn btn-danger"
-    >Delete User</a
-  >
+    Delete User
+  </a>
 </div>
-<a href="{{ url_for('list_users') }}" class="btn btn-secondary"
-  >Back to All Users</a
->
+<a href="{{ url_for('list_users') }}" class="btn btn-secondary">
+  Back to All Users
+</a>
 {% endblock %}
